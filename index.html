@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interaction tab</title>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; }
+    body { display: flex; justify-content: center; align-items: center; }
+    #gif {
+      width: 100%; height: 100%; object-fit: contain; display: block;
+      transform-origin: center center;
+    }
+  </style>
+</head>
+<body>
+  <img id="gif" alt="">
+  <audio id="audio-normal" src="assets/kame_charge.mp3" preload="auto" loop playsinline></audio>
+  <audio id="audio-fire" src="assets/basicbeam_fire.mp3" preload="auto" playsinline></audio>
+  <audio id="audio-beamhead" src="assets/beamhead.mp3" preload="auto" loop playsinline></audio>
+
+  <script>
+    // ========== Settings ==========
+    const SETS = {
+      1: { normal: "assets/super-saiyan-goku.gif", close: "assets/goku-dragonball.gif" },
+      2: { normal: "assets/super-saiyan-goku.gif", close: "assets/goku-dragonball.gif" }
+    };
+    const windowType = Math.max(1, parseInt(new URLSearchParams(location.search).get("w") || "1", 10));
+    const IMG_NORMAL = SETS[windowType]?.normal ?? SETS[1].normal;
+    const IMG_CLOSE = SETS[windowType]?.close ?? SETS[1].close;
+
+    const CLOSE_DISTANCE = 510;
+    const ROTATION_STRENGTH = 28;
+    const SPRITE_ANGLE_OFFSET = 0;
+
+    // ========== Elements ==========
+    const gif = document.getElementById("gif");
+    const audioNormal = document.getElementById("audio-normal");
+    const audioFire = document.getElementById("audio-fire");
+    const audioBeamhead = document.getElementById("audio-beamhead");
+
+    // ========== Window sync (BroadcastChannel) ==========
+    const channel = new BroadcastChannel("window-interaction");
+    const myId = Math.random();
+    let otherWindow = null;
+
+    channel.onmessage = (event) => {
+      const message = event.data;
+      if (message.type === "position" && message.id !== myId) {
+        otherWindow = { x: message.x, y: message.y, w: message.w, h: message.h };
+      }
+    };
+
+    function centerOfThisWindow() {
+      return {
+        x: window.screenX + window.outerWidth / 2,
+        y: window.screenY + window.outerHeight / 2
+      };
+    }
+
+    function distanceToOtherWindow() {
+      if (!otherWindow) return Infinity;
+      const myCenter = centerOfThisWindow();
+      const otherCenterX = otherWindow.x + otherWindow.w / 2;
+      const otherCenterY = otherWindow.y + otherWindow.h / 2;
+      return Math.hypot(myCenter.x - otherCenterX, myCenter.y - otherCenterY);
+    }
+
+    // ========== Image rotation ==========
+    function updateGifTransform() {
+      let rotationDegrees;
+      let flipTransform = "";
+
+      if (otherWindow) {
+        const myCenter = centerOfThisWindow();
+        const otherCenterX = otherWindow.x + otherWindow.w / 2;
+        const otherCenterY = otherWindow.y + otherWindow.h / 2;
+        const angleInDegrees = (Math.atan2(otherCenterY - myCenter.y, otherCenterX - myCenter.x) * 180) / Math.PI + SPRITE_ANGLE_OFFSET;
+        if (windowType === 2) {
+          flipTransform = "scaleX(-1) ";
+          rotationDegrees = angleInDegrees - 180;
+        } else {
+          rotationDegrees = angleInDegrees;
+        }
+      } else {
+        const screenMidY = window.screen.availHeight / 2;
+        const windowCenterY = window.screenY + window.outerHeight / 2;
+        rotationDegrees = -((windowCenterY - screenMidY) / Math.max(screenMidY, 1)) * ROTATION_STRENGTH;
+        rotationDegrees = Math.max(-45, Math.min(45, rotationDegrees));
+        if (windowType === 2) flipTransform = "scaleX(-1) ";
+      }
+
+      gif.style.transform =
+        flipTransform ? `rotate(${rotationDegrees}deg) scaleX(-1)` : `rotate(${rotationDegrees}deg)`;
+    }
+
+    // ========== Audio ==========
+    // Normal: kame_charge (loop). Close: basicbeam_fire once, then beamhead (loop).
+    let audioMode = null;
+    let lastIsClose = false;
+    let audioUnlocked = false;
+
+    function stopAudio(audioElement) {
+      audioElement.pause();
+      audioElement.currentTime = 0;
+    }
+
+    function onFireEnded() {
+      audioFire.removeEventListener("ended", onFireEnded);
+      if (audioMode !== "close") return;
+      stopAudio(audioBeamhead);
+      audioBeamhead.play().catch(() => {});
+    }
+
+    function playNormalAudio() {
+      stopAudio(audioFire);
+      stopAudio(audioBeamhead);
+      audioFire.removeEventListener("ended", onFireEnded);
+      audioNormal.play().catch(() => {});
+    }
+
+    function playCloseAudio() {
+      stopAudio(audioNormal);
+      stopAudio(audioBeamhead);
+      stopAudio(audioFire);
+      audioFire.removeEventListener("ended", onFireEnded);
+      audioFire.addEventListener("ended", onFireEnded);
+      audioFire.play().catch(() => {});
+    }
+
+    function setAudio(isClose, forceUpdate) {
+      lastIsClose = isClose;
+      const audioModeToSet = isClose ? "close" : "normal";
+      if (!forceUpdate && audioModeToSet === audioMode) return;
+      audioMode = audioModeToSet;
+      if (audioModeToSet === "normal") playNormalAudio();
+      else playCloseAudio();
+    }
+
+    function unlockAudio() {
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+      audioMode = null;
+      setAudio(lastIsClose, true);
+    }
+
+    ["click", "touchstart", "pointerdown", "keydown"].forEach((type) => {
+      document.addEventListener(type, unlockAudio, { passive: true, once: true });
+    });
+
+    // ========== Main loop ==========
+    gif.src = IMG_NORMAL;
+    updateGifTransform();
+    setAudio(false, true);
+
+    setInterval(() => {
+      channel.postMessage({
+        type: "position",
+        id: myId,
+        x: window.screenX,
+        y: window.screenY,
+        w: window.outerWidth,
+        h: window.outerHeight
+      });
+
+      if (!otherWindow) {
+        gif.src = IMG_NORMAL;
+        updateGifTransform();
+        setAudio(false);
+        return;
+      }
+
+      const isClose = distanceToOtherWindow() < CLOSE_DISTANCE;
+      gif.src = isClose ? IMG_CLOSE : IMG_NORMAL;
+      updateGifTransform();
+      setAudio(isClose);
+    }, 100);
+  </script>
+</body>
+</html>
