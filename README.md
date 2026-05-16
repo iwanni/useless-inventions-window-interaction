@@ -1,4 +1,4 @@
-# Dragon Ball Z Window Interaction
+# Dragon Ball Z - Goku Kamehameha Window Interaction
 
 ![Result Demo](assets/result.gif)
 
