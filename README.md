@@ -1,5 +1,9 @@
 # Dragon Ball Z - Goku Kamehameha Window Interaction
 
+Demo
+- [Default Goku](https://iwanni.github.io/useless-inventions-window-interaction?w=1) - `?w=1` (faces right)
+- [Mirrored Goku](https://iwanni.github.io/useless-inventions-window-interaction?w=2) - `?w=2` (faces left)
+
 ![Result Demo](assets/result.gif)
 
 A fun interactive web application where two browser windows containing Goku can "interact" with each other based on their distance. When the windows get close, Goku powers up and fires his Kamehameha wave!
@@ -23,8 +27,8 @@ A fun interactive web application where two browser windows containing Goku can 
 
 ## URL Parameters
 
-- `?w=1` - Default Goku (faces right)
-- `?w=2` - Mirrored Goku (faces left)
+- [Default Goku](https://iwanni.github.io/useless-inventions-window-interaction?w=1) - `?w=1` (faces right)
+- [Mirrored Goku](https://iwanni.github.io/useless-inventions-window-interaction?w=2) - `?w=2` (faces left)
 
 ## Technical Details
 
