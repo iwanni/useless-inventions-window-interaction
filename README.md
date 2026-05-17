@@ -50,3 +50,11 @@ The project includes Dragon Ball Z themed assets:
 ## Live Demo
 
 Simply open `index.html` in two browser windows and experience the magic of window-to-window Kamehameha battles!
+
+## Credits
+
+- **Sound Effects**: [MyInstants](https://www.myinstants.com/)
+- **GIF Images**: 
+  - [Super Saiyan Goku](https://tenor.com/view/super-saiyan-goku-dbz-charging-gif-17464307) - Tenor
+  - [Goku Kamehameha](https://tenor.com/view/goku-dragonball-gif-8466428) - Tenor
+  - [Vegeta](https://tenor.com/view/vegeta-gif-1615384944259328642) - Tenor
