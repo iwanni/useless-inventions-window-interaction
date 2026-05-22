@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Interaction tab</title>
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; }
+    html, body { margin: 0; width: 100%; height: 100%;  background: black }
     body { display: flex; justify-content: center; align-items: center; }
     #gif {
       width: 100%; height: 100%; object-fit: contain; display: block;
@@ -15,15 +15,15 @@
 </head>
 <body>
   <img id="gif" alt="">
-  <audio id="audio-normal" src="assets/kame_charge.mp3" preload="auto" loop playsinline></audio>
+  <audio id="audio-normal" src="assets/super-saiyan-2.mp3" preload="auto" loop playsinline></audio>
   <audio id="audio-fire" src="assets/basicbeam_fire.mp3" preload="auto" playsinline></audio>
   <audio id="audio-beamhead" src="assets/beamhead.mp3" preload="auto" loop playsinline></audio>
 
   <script>
     // ========== Settings ==========
     const SETS = {
-      1: { normal: "assets/super-saiyan-goku.gif", close: "assets/goku-dragonball.gif" },
-      2: { normal: "assets/super-saiyan-goku.gif", close: "assets/goku-dragonball.gif" }
+      1: { normal: "assets/goku-dbz.gif", close: "assets/kamehameha.gif" },
+      2: { normal: "assets/dragonball-z-vegeta.gif", close: "assets/kamehameha.gif" }
     };
     const windowType = Math.max(1, parseInt(new URLSearchParams(location.search).get("w") || "1", 10));
     const IMG_NORMAL = SETS[windowType]?.normal ?? SETS[1].normal;
