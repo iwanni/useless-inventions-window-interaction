@@ -1,22 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Interaction tab</title>
   <style>
-    html, body { margin: 0; width: 100%; height: 100%;  background: black }
-    body { display: flex; justify-content: center; align-items: center; }
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: black
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
     #gif {
-      width: 100%; height: 100%; object-fit: contain; display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
       transform-origin: center center;
+    }
+
+    /* Health Bar Styles */
+    #healthBar {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 30px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid #ffa500;
+      border-radius: 15px;
+      padding: 3px;
+      z-index: 1000;
+      box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+    }
+
+    #healthFill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #00ff00 0%, #ffff00 50%, #ff0000 100%);
+      border-radius: 10px;
+      transition: width 0.3s ease;
+      box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    }
+
+    #healthText {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 12px;
+      text-shadow: 1px 1px 2px black;
+    }
+
+    /* Character Name */
+    #characterName {
+      position: fixed;
+      top: 45px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #ffa500;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 14px;
+      text-shadow: 2px 2px 4px black;
+      z-index: 1000;
+    }
+
+    /* Game Over Overlay */
+    #gameOverOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 2000;
+    }
+
+    #gameOverText {
+      color: #ff6b6b;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 48px;
+      text-shadow: 3px 3px 6px black;
+      margin-bottom: 20px;
+      animation: pulse 1.5s infinite;
+    }
+
+    #winnerText {
+      color: #ffa500;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 24px;
+      text-shadow: 2px 2px 4px black;
+      margin-bottom: 30px;
+    }
+
+    #restartBtn {
+      padding: 10px 20px;
+      font-size: 18px;
+      background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+      border: none;
+      border-radius: 25px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease;
+    }
+
+    #restartBtn:hover {
+      transform: scale(1.05);
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+      }
+    }
+
+    /* Damage indicator */
+    .damage-indicator {
+      position: fixed;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 20px;
+      color: #ff4444;
+      text-shadow: 2px 2px 4px black;
+      pointer-events: none;
+      z-index: 1500;
+      animation: damageFloat 1s ease-out forwards;
+    }
+
+    @keyframes damageFloat {
+      0% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
     }
   </style>
 </head>
+
 <body>
   <img id="gif" alt="">
+
+  <!-- Health Bar -->
+  <div id="healthBar">
+    <div id="healthFill"></div>
+    <div id="healthText">100 / 100</div>
+  </div>
+  <div id="characterName">Goku</div>
+
+  <!-- Game Over Overlay -->
+  <div id="gameOverOverlay">
+    <div id="gameOverText">GAME OVER</div>
+    <div id="winnerText"></div>
+    <button id="restartBtn" onclick="restartGame()">Fight Again!</button>
+  </div>
+
   <audio id="audio-normal" src="assets/super-saiyan-2.mp3" preload="auto" loop playsinline></audio>
-  <audio id="audio-fire" src="assets/basicbeam_fire.mp3" preload="auto" playsinline></audio>
+  <audio id="audio-fire" src="assets/basicbeam_fire2.mp3" preload="auto" playsinline></audio>
   <audio id="audio-beamhead" src="assets/beamhead.mp3" preload="auto" loop playsinline></audio>
 
   <script>
@@ -38,16 +212,48 @@
     const audioNormal = document.getElementById("audio-normal");
     const audioFire = document.getElementById("audio-fire");
     const audioBeamhead = document.getElementById("audio-beamhead");
+    const healthFill = document.getElementById("healthFill");
+    const healthText = document.getElementById("healthText");
+    const characterName = document.getElementById("characterName");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
 
     // ========== Window sync (BroadcastChannel) ==========
     const channel = new BroadcastChannel("window-interaction");
     const myId = Math.random();
+    const myCreationTime = Date.now();
     let otherWindow = null;
+    let otherCreationTime = null;
+
+    // ========== Health System ==========
+    const MAX_HEALTH = 100;
+    let currentHealth = MAX_HEALTH;
+    let gameActive = true;
+    let lastDamageTime = 0;
+    const DAMAGE_COOLDOWN = 300; // ms
+    const PROXIMITY_DAMAGE = 8.5; // damage per tick when close
+    const OVERLAP_DAMAGE = 15.0; // damage per tick when overlapping significantly
+    const WIN_THRESHOLD = 0.7; // 70% overlap to win
+
+    // Set character name based on window type
+    characterName.textContent = windowType === 2 ? "Vegeta" : "Goku";
 
     channel.onmessage = (event) => {
       const message = event.data;
-      if (message.type === "position" && message.id !== myId) {
+      if (message.id === myId) return; // Ignore own messages
+
+      if (message.type === "position") {
         otherWindow = { x: message.x, y: message.y, w: message.w, h: message.h };
+        if (message.creationTime) {
+          otherCreationTime = message.creationTime;
+        }
+      } else if (message.type === "gameOver" && gameActive) {
+        // Other window lost, this window wins
+        endGame(true);
+      } else if (message.type === "restart") {
+        // Other window restarted, restart this window too
+        if (!gameActive) {
+          restartGame();
+        }
       }
     };
 
@@ -64,6 +270,155 @@
       const otherCenterX = otherWindow.x + otherWindow.w / 2;
       const otherCenterY = otherWindow.y + otherWindow.h / 2;
       return Math.hypot(myCenter.x - otherCenterX, myCenter.y - otherCenterY);
+    }
+
+    // ========== Overlap Detection ==========
+    function getWindowRect() {
+      return {
+        x: window.screenX,
+        y: window.screenY,
+        w: window.outerWidth,
+        h: window.outerHeight
+      };
+    }
+
+    function calculateOverlapPercentage() {
+      if (!otherWindow) return { myOverlap: 0, otherOverlap: 0 };
+
+      const myRect = getWindowRect();
+
+      // Calculate intersection rectangle
+      const left = Math.max(myRect.x, otherWindow.x);
+      const right = Math.min(myRect.x + myRect.w, otherWindow.x + otherWindow.w);
+      const top = Math.max(myRect.y, otherWindow.y);
+      const bottom = Math.min(myRect.y + myRect.h, otherWindow.y + otherWindow.h);
+
+      if (left >= right || top >= bottom) return { myOverlap: 0, otherOverlap: 0 }; // No overlap
+
+      const overlapArea = (right - left) * (bottom - top);
+      const myArea = myRect.w * myRect.h;
+      const otherArea = otherWindow.w * otherWindow.h;
+
+      return {
+        myOverlap: overlapArea / myArea, // How much of MY window is covered
+        otherOverlap: overlapArea / otherArea // How much of OTHER window is covered
+      };
+    }
+
+
+    function shouldIWin() {
+      const overlap = calculateOverlapPercentage();
+      if (overlap.otherOverlap < WIN_THRESHOLD && overlap.myOverlap < WIN_THRESHOLD) {
+        return false; // No significant overlap
+      }
+
+      // If both windows have significant overlap, only the "dominant" window should claim victory
+      // Use creation time as tiebreaker - older window wins (first window opened)
+      if (otherCreationTime && myCreationTime && otherCreationTime !== myCreationTime) {
+        const iAmOlder = myCreationTime < otherCreationTime;
+
+        // Only claim victory if I'm covering significantly AND I'm the older window
+        return overlap.otherOverlap >= WIN_THRESHOLD && iAmOlder;
+      }
+
+      // Fallback to position-based logic if no creation time available
+      const myRect = getWindowRect();
+
+      // Only claim victory if I'm clearly covering more AND I'm in a dominant position
+      if (overlap.otherOverlap >= WIN_THRESHOLD && overlap.otherOverlap > overlap.myOverlap) {
+        // I'm covering more of them than they are of me
+        if (Math.abs(myRect.y - otherWindow.y) > 30) {
+          return myRect.y > otherWindow.y; // Lower window wins
+        } else {
+          return myRect.x > otherWindow.x; // Rightmost window wins
+        }
+      }
+
+      return false;
+    }
+
+    // ========== Health Management ==========
+    function updateHealthDisplay() {
+      const healthPercentage = (currentHealth / MAX_HEALTH) * 100;
+      healthFill.style.width = `${Math.max(0, healthPercentage)}%`;
+      healthText.textContent = `${Math.round(currentHealth)} / ${MAX_HEALTH}`;
+
+      // Change color based on health
+      if (healthPercentage > 66) {
+        healthFill.style.background = "linear-gradient(90deg, #00ff00 0%, #88ff00 100%)";
+      } else if (healthPercentage > 33) {
+        healthFill.style.background = "linear-gradient(90deg, #ffff00 0%, #ff8800 100%)";
+      } else {
+        healthFill.style.background = "linear-gradient(90deg, #ff4444 0%, #cc0000 100%)";
+      }
+    }
+
+    function takeDamage(amount, reason = "") {
+      if (!gameActive) return;
+
+      const now = Date.now();
+      if (now - lastDamageTime < DAMAGE_COOLDOWN) return;
+
+      currentHealth = Math.max(0, currentHealth - amount);
+      lastDamageTime = now;
+
+      // Show damage indicator
+      showDamageIndicator(Math.round(amount));
+
+      updateHealthDisplay();
+
+      if (currentHealth <= 0) {
+        endGame(false);
+      }
+    }
+
+    function showDamageIndicator(damage) {
+      const indicator = document.createElement("div");
+      indicator.className = "damage-indicator";
+      indicator.textContent = `-${damage}`;
+      indicator.style.left = Math.random() * (window.innerWidth - 100) + "px";
+      indicator.style.top = "80px";
+      document.body.appendChild(indicator);
+
+      setTimeout(() => {
+        document.body.removeChild(indicator);
+      }, 1000);
+    }
+
+    function endGame(won) {
+      gameActive = false;
+
+      if (won) {
+        document.getElementById("gameOverText").textContent = "VICTORY!";
+        document.getElementById("gameOverText").style.color = "#00ff00";
+        document.getElementById("winnerText").textContent = `${characterName.textContent} wins!`;
+      } else {
+        document.getElementById("gameOverText").textContent = "DEFEATED!";
+        document.getElementById("gameOverText").style.color = "#ff4444";
+        document.getElementById("winnerText").textContent = `${characterName.textContent} has been defeated...`;
+      }
+
+      gameOverOverlay.style.display = "flex";
+
+      // Send game over message to other window
+      channel.postMessage({
+        type: "gameOver",
+        id: myId,
+        winner: won
+      });
+    }
+
+    function restartGame() {
+      gameActive = true;
+      currentHealth = MAX_HEALTH;
+      updateHealthDisplay();
+      gameOverOverlay.style.display = "none";
+
+      // Send restart message to other window
+      channel.postMessage({
+        type: "restart",
+        id: myId
+      });
     }
 
     // ========== Image rotation ==========
@@ -109,14 +464,14 @@
       audioFire.removeEventListener("ended", onFireEnded);
       if (audioMode !== "close") return;
       stopAudio(audioBeamhead);
-      audioBeamhead.play().catch(() => {});
+      audioBeamhead.play().catch(() => { });
     }
 
     function playNormalAudio() {
       stopAudio(audioFire);
       stopAudio(audioBeamhead);
       audioFire.removeEventListener("ended", onFireEnded);
-      audioNormal.play().catch(() => {});
+      audioNormal.play().catch(() => { });
     }
 
     function playCloseAudio() {
@@ -125,7 +480,7 @@
       stopAudio(audioFire);
       audioFire.removeEventListener("ended", onFireEnded);
       audioFire.addEventListener("ended", onFireEnded);
-      audioFire.play().catch(() => {});
+      audioFire.play().catch(() => { });
     }
 
     function setAudio(isClose, forceUpdate) {
@@ -152,11 +507,15 @@
     gif.src = IMG_NORMAL;
     updateGifTransform();
     setAudio(false, true);
+    updateHealthDisplay();
 
     setInterval(() => {
+      if (!gameActive) return;
+
       channel.postMessage({
         type: "position",
         id: myId,
+        creationTime: myCreationTime,
         x: window.screenX,
         y: window.screenY,
         w: window.outerWidth,
@@ -170,11 +529,35 @@
         return;
       }
 
-      const isClose = distanceToOtherWindow() < CLOSE_DISTANCE;
+      const distance = distanceToOtherWindow();
+      const isClose = distance < CLOSE_DISTANCE;
+      const overlap = calculateOverlapPercentage();
+
+      // Check win condition - only one window should claim victory
+      if (shouldIWin()) {
+        endGame(true); // I win - I'm the dominant window
+        return;
+      }
+
+      // Apply damage based on proximity and overlap
+      if (isClose) {
+        if (overlap.myOverlap > 0.3 || overlap.otherOverlap > 0.3) {
+          // High damage for significant overlap
+          takeDamage(OVERLAP_DAMAGE, "overlap");
+        } else {
+          // Low damage for proximity
+          takeDamage(PROXIMITY_DAMAGE, "proximity");
+        }
+      }
+
       gif.src = isClose ? IMG_CLOSE : IMG_NORMAL;
       updateGifTransform();
       setAudio(isClose);
     }, 100);
+
+    // ========== Global Functions ==========
+    window.restartGame = restartGame;
   </script>
 </body>
+
 </html>
