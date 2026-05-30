@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BroadcastChannel API Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #070714;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
+      padding: 20px 0;
+    }
+
+    .poster {
+      width: 1080px;
+      height: 1920px;
+      background: linear-gradient(170deg, #0f0f23 0%, #1a1a35 40%, #12122a 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Background grid */
+    .poster::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(78, 205, 196, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(78, 205, 196, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* Ambient glow */
+    .glow-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+      opacity: 0.12;
+    }
+
+    .glow-orb.orange {
+      width: 350px;
+      height: 350px;
+      background: #ff6b35;
+      top: 180px;
+      left: 40px;
+    }
+
+    .glow-orb.blue {
+      width: 350px;
+      height: 350px;
+      background: #2a5298;
+      top: 180px;
+      right: 40px;
+    }
+
+    .glow-orb.red {
+      width: 500px;
+      height: 300px;
+      background: #ee5a52;
+      top: 700px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .glow-orb.teal {
+      width: 400px;
+      height: 250px;
+      background: #4ecdc4;
+      bottom: 500px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      text-align: center;
+      padding: 60px 60px 30px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .header .badge {
+      display: inline-block;
+      background: rgba(78, 205, 196, 0.12);
+      border: 1px solid rgba(78, 205, 196, 0.25);
+      color: #4ecdc4;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 10px 26px;
+      border-radius: 30px;
+      margin-bottom: 22px;
+    }
+
+    .header h1 {
+      font-size: 44px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+
+    .header h1 span {
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.45);
+      font-weight: 400;
+    }
+
+    /* ===== CONTENT ===== */
+    .content {
+      position: relative;
+      z-index: 2;
+      padding: 0 60px;
+    }
+
+    /* ===== WINDOWS ROW ===== */
+    .windows-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 50px;
+      margin-top: 20px;
+    }
+
+    .browser-window {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+
+    .browser-bar {
+      height: 40px;
+      background: rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 8px;
+    }
+
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .browser-dot.r {
+      background: #ff5f56;
+    }
+
+    .browser-dot.y {
+      background: #ffbd2e;
+    }
+
+    .browser-dot.g {
+      background: #27c93f;
+    }
+
+    .browser-url {
+      margin-left: 14px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.25);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-family: 'Inter', monospace;
+    }
+
+    .browser-body {
+      padding: 30px 22px;
+      text-align: center;
+    }
+
+    .char-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      border: 3px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .char-avatar.goku {
+      background: linear-gradient(145deg, #ff6b35, #f7931e);
+    }
+
+    .char-avatar.vegeta {
+      background: linear-gradient(145deg, #1e3c72, #2a5298);
+    }
+
+    .char-name {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 1.5px;
+    }
+
+    .char-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 3px;
+    }
+
+    .window-tag {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .window-tag.goku {
+      background: rgba(255, 107, 53, 0.15);
+      color: #ff6b35;
+      border: 1px solid rgba(255, 107, 53, 0.2);
+    }
+
+    .window-tag.vegeta {
+      background: rgba(42, 82, 152, 0.2);
+      color: #5b8dee;
+      border: 1px solid rgba(91, 141, 238, 0.2);
+    }
+
+    /* ===== ARROW LABELS (always on top) ===== */
+    .arrow-labels-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1080px;
+      height: 1920px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .arrow-label {
+      position: absolute;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: 10px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .arrow-label.post {
+      background: rgba(10, 15, 30, 0.85);
+      color: #4ecdc4;
+      border: 1.5px solid rgba(78, 205, 196, 0.35);
+      box-shadow: 0 2px 12px rgba(78, 205, 196, 0.15);
+    }
+
+    .arrow-label.on {
+      background: rgba(10, 15, 30, 0.85);
+      color: #ff8c5a;
+      border: 1.5px solid rgba(255, 140, 90, 0.35);
+      box-shadow: 0 2px 12px rgba(255, 140, 90, 0.15);
+    }
+
+    .arrow-label.data {
+      background: rgba(10, 15, 30, 0.85);
+      color: rgba(255, 255, 255, 0.5);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* ===== BROADCAST CHANNEL BOX ===== */
+    .channel-box {
+      margin-top: 160px;
+      background: linear-gradient(145deg, rgba(238, 90, 82, 0.14), rgba(238, 90, 82, 0.04));
+      border: 2px solid rgba(238, 90, 82, 0.3);
+      border-radius: 22px;
+      padding: 36px 36px;
+      text-align: center;
+      position: relative;
+      backdrop-filter: blur(10px);
+    }
+
+    .channel-icon {
+      font-size: 38px;
+      margin-bottom: 8px;
+    }
+
+    .channel-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ee5a52;
+      letter-spacing: 0.5px;
+    }
+
+    .channel-subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.35);
+      margin-top: 6px;
+      font-family: 'Inter', monospace;
+    }
+
+    .message-types {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .msg-tag {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 10px;
+      font-family: 'Inter', monospace;
+    }
+
+    .msg-tag.position {
+      background: rgba(78, 205, 196, 0.12);
+      color: #4ecdc4;
+      border: 1px solid rgba(78, 205, 196, 0.2);
+    }
+
+    .msg-tag.gameover {
+      background: rgba(238, 90, 82, 0.12);
+      color: #ee5a52;
+      border: 1px solid rgba(238, 90, 82, 0.2);
+    }
+
+    .msg-tag.restart {
+      background: rgba(255, 189, 46, 0.12);
+      color: #ffbd2e;
+      border: 1px solid rgba(255, 189, 46, 0.2);
+    }
+
+    /* ===== GAME LOGIC SECTION ===== */
+    .logic-section {
+      margin-top: 55px;
+    }
+
+    .logic-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.3);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .logic-cards {
+      display: flex;
+      gap: 16px;
+    }
+
+    .logic-card {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 28px 20px;
+      text-align: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .logic-icon {
+      font-size: 36px;
+      margin-bottom: 14px;
+    }
+
+    .logic-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.35;
+    }
+
+    .logic-card .logic-value {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .logic-value.teal {
+      background: rgba(78, 205, 196, 0.12);
+      color: #4ecdc4;
+      border: 1px solid rgba(78, 205, 196, 0.2);
+    }
+
+    .logic-value.orange {
+      background: rgba(255, 107, 53, 0.12);
+      color: #ff6b35;
+      border: 1px solid rgba(255, 107, 53, 0.2);
+    }
+
+    .logic-value.red {
+      background: rgba(238, 90, 82, 0.12);
+      color: #ee5a52;
+      border: 1px solid rgba(238, 90, 82, 0.2);
+    }
+
+    /* ===== 3 POINTS - TITLE ONLY ===== */
+    .points-section {
+      margin-top: 50px;
+    }
+
+    .points-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.3);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 22px;
+      text-align: center;
+    }
+
+    .points-row {
+      display: flex;
+      gap: 14px;
+    }
+
+    .point-chip {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
+      padding: 20px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      backdrop-filter: blur(5px);
+    }
+
+    .point-num {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .point-num.p1 {
+      background: linear-gradient(145deg, #4ecdc4, #44a08d);
+    }
+
+    .point-num.p2 {
+      background: linear-gradient(145deg, #ff6b35, #f7931e);
+    }
+
+    .point-num.p3 {
+      background: linear-gradient(145deg, #ee5a52, #c0392b);
+    }
+
+    .point-chip h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.35;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 28px 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 2;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .footer-left {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    .footer-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ecdc4;
+      animation: footerPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes footerPulse {
+
+      0%,
+      100% {
+        opacity: 0.4;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* ===== SVG DIAGRAM ===== */
+    .diagram-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1080px;
+      height: 1920px;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .arrow-path {
+      fill: none;
+      stroke-width: 2.5;
+      stroke-dasharray: 8 5;
+    }
+
+    .arrow-path.down {
+      stroke: rgba(78, 205, 196, 0.45);
+    }
+
+    .arrow-path.up {
+      stroke: rgba(255, 140, 90, 0.4);
+    }
+
+    .arrow-path.logic {
+      stroke: rgba(255, 255, 255, 0.15);
+      stroke-dasharray: 6 6;
+    }
+
+    .flow-dot {
+      filter: drop-shadow(0 0 6px currentColor);
+    }
+
+    .arrowhead {
+      opacity: 0.7;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="poster">
+    <!-- Ambient glows -->
+    <div class="glow-orb orange"></div>
+    <div class="glow-orb blue"></div>
+    <div class="glow-orb red"></div>
+    <div class="glow-orb teal"></div>
+
+    <!-- ===== SVG ARROWS & FLOW ===== -->
+    <svg class="diagram-svg" viewBox="0 0 1080 1920">
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="glowStrong">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      <!-- ======== LEFT: Window → Channel (postMessage) ======== -->
+      <path id="pathDownLeft" class="arrow-path down" d="M 290 530 C 290 620, 370 680, 430 750" />
+      <polygon points="424,747 436,747 430,762" fill="#4ecdc4" class="arrowhead" />
+
+      <circle r="6" fill="#4ecdc4" filter="url(#glow)">
+        <animateMotion dur="2s" repeatCount="indefinite">
+          <mpath href="#pathDownLeft" />
+        </animateMotion>
+      </circle>
+      <circle r="4.5" fill="#4ecdc4" filter="url(#glow)" opacity="0.6">
+        <animateMotion dur="2s" repeatCount="indefinite" begin="0.65s">
+          <mpath href="#pathDownLeft" />
+        </animateMotion>
+      </circle>
+      <circle r="3" fill="#4ecdc4" filter="url(#glow)" opacity="0.35">
+        <animateMotion dur="2s" repeatCount="indefinite" begin="1.3s">
+          <mpath href="#pathDownLeft" />
+        </animateMotion>
+      </circle>
+
+      <!-- ======== RIGHT: Window → Channel (postMessage) ======== -->
+      <path id="pathDownRight" class="arrow-path down" d="M 790 530 C 790 620, 710 680, 650 750" />
+      <polygon points="644,747 656,747 650,762" fill="#4ecdc4" class="arrowhead" />
+
+      <circle r="6" fill="#5b8dee" filter="url(#glow)">
+        <animateMotion dur="2.2s" repeatCount="indefinite" begin="0.3s">
+          <mpath href="#pathDownRight" />
+        </animateMotion>
+      </circle>
+      <circle r="4.5" fill="#5b8dee" filter="url(#glow)" opacity="0.6">
+        <animateMotion dur="2.2s" repeatCount="indefinite" begin="1s">
+          <mpath href="#pathDownRight" />
+        </animateMotion>
+      </circle>
+      <circle r="3" fill="#5b8dee" filter="url(#glow)" opacity="0.35">
+        <animateMotion dur="2.2s" repeatCount="indefinite" begin="1.65s">
+          <mpath href="#pathDownRight" />
+        </animateMotion>
+      </circle>
+
+      <!-- ======== LEFT: Channel → Window (onmessage) ======== -->
+      <path id="pathUpLeft" class="arrow-path up" d="M 400 750 C 340 680, 230 630, 220 530" />
+      <polygon points="214,536 226,536 220,522" fill="#ff8c5a" class="arrowhead" />
+
+      <circle r="6" fill="#ff6b35" filter="url(#glow)">
+        <animateMotion dur="2.4s" repeatCount="indefinite" begin="0.5s">
+          <mpath href="#pathUpLeft" />
+        </animateMotion>
+      </circle>
+      <circle r="4" fill="#ff6b35" filter="url(#glow)" opacity="0.5">
+        <animateMotion dur="2.4s" repeatCount="indefinite" begin="1.4s">
+          <mpath href="#pathUpLeft" />
+        </animateMotion>
+      </circle>
+
+      <!-- ======== RIGHT: Channel → Window (onmessage) ======== -->
+      <path id="pathUpRight" class="arrow-path up" d="M 680 750 C 740 680, 850 630, 860 530" />
+      <polygon points="854,536 866,536 860,522" fill="#ff8c5a" class="arrowhead" />
+
+      <circle r="6" fill="#ff6b35" filter="url(#glow)">
+        <animateMotion dur="2.4s" repeatCount="indefinite" begin="0.8s">
+          <mpath href="#pathUpRight" />
+        </animateMotion>
+      </circle>
+      <circle r="4" fill="#ff6b35" filter="url(#glow)" opacity="0.5">
+        <animateMotion dur="2.4s" repeatCount="indefinite" begin="1.7s">
+          <mpath href="#pathUpRight" />
+        </animateMotion>
+      </circle>
+
+      <!-- ======== Channel → Game Logic (down) ======== -->
+      <path id="pathToLogic" class="arrow-path logic" d="M 540 910 L 540 1100" />
+      <polygon points="534,1097 546,1097 540,1112" fill="rgba(255,255,255,0.3)" class="arrowhead" />
+
+      <circle r="5" fill="#ee5a52" filter="url(#glow)">
+        <animateMotion dur="2s" repeatCount="indefinite">
+          <mpath href="#pathToLogic" />
+        </animateMotion>
+      </circle>
+      <circle r="3.5" fill="#ee5a52" filter="url(#glow)" opacity="0.45">
+        <animateMotion dur="2s" repeatCount="indefinite" begin="1s">
+          <mpath href="#pathToLogic" />
+        </animateMotion>
+      </circle>
+
+      <!-- ======== Logic → Points (down) ======== -->
+      <!-- <path id="pathToPoints" class="arrow-path logic"
+        d="M 540 1340 L 540 1470" />
+      <polygon points="534,1467 546,1467 540,1480" fill="rgba(255,255,255,0.2)" class="arrowhead" />
+
+      <circle r="4" fill="rgba(255,255,255,0.5)" filter="url(#glow)">
+        <animateMotion dur="2.2s" repeatCount="indefinite" begin="0.4s">
+          <mpath href="#pathToPoints" />
+        </animateMotion>
+      </circle> -->
+    </svg>
+
+    <!-- ===== ARROW LABELS (always in front) ===== -->
+    <div class="arrow-labels-layer" style="z-index: 11;">
+      <!-- Left postMessage -->
+      <div class="arrow-label post" style="top: 590px; left: 120px;">
+        postMessage()
+      </div>
+      <!-- Right postMessage -->
+      <div class="arrow-label post" style="top: 590px; right: 120px;">
+        postMessage()
+      </div>
+      <!-- Left onmessage -->
+      <div class="arrow-label on" style="top: 660px; left: 100px;">
+        onmessage
+      </div>
+      <!-- Right onmessage -->
+      <div class="arrow-label on" style="top: 660px; right: 100px;">
+        onmessage
+      </div>
+      <!-- Data flow label -->
+      <div class="arrow-label data" style="top: 920px; left: 560px;">
+        Proses Data
+      </div>
+    </div>
+
+    <!-- ===== HEADER ===== -->
+    <div class="header">
+      <div class="badge">Useless Invention #1</div>
+      <h1>🐉 <span>Dragon Ball Z — Window Interaction with BroadcastChannel API</span></h1>
+    </div>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="content">
+
+      <!-- Browser Windows -->
+      <div class="windows-row">
+        <!-- Goku -->
+        <div class="browser-window">
+          <div class="browser-bar">
+            <div class="browser-dot r"></div>
+            <div class="browser-dot y"></div>
+            <div class="browser-dot g"></div>
+            <div class="browser-url">index.html?w=1</div>
+          </div>
+          <div class="browser-body">
+            <div class="char-avatar goku">⚡</div>
+            <div class="char-name">GOKU</div>
+            <div class="char-label">Window 1</div>
+            <div class="window-tag goku">screenX · screenY · size</div>
+          </div>
+        </div>
+
+        <!-- Vegeta -->
+        <div class="browser-window">
+          <div class="browser-bar">
+            <div class="browser-dot r"></div>
+            <div class="browser-dot y"></div>
+            <div class="browser-dot g"></div>
+            <div class="browser-url">index.html?w=2</div>
+          </div>
+          <div class="browser-body">
+            <div class="char-avatar vegeta">🔥</div>
+            <div class="char-name">VEGETA</div>
+            <div class="char-label">Window 2</div>
+            <div class="window-tag vegeta">screenX · screenY · size</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BroadcastChannel Box -->
+      <div class="channel-box">
+        <div class="channel-icon">📡</div>
+        <div class="channel-title">BroadcastChannel</div>
+        <div class="channel-subtitle">new BroadcastChannel("window-interaction")</div>
+        <div class="message-types">
+          <span class="msg-tag position">{ type: "position" }</span>
+          <span class="msg-tag gameover">{ type: "gameOver" }</span>
+          <span class="msg-tag restart">{ type: "restart" }</span>
+        </div>
+      </div>
+
+      <!-- Game Logic Cards -->
+      <div class="logic-section">
+        <div class="logic-title">Game Logic</div>
+        <div class="logic-cards">
+          <div class="logic-card">
+            <div class="logic-icon">📐</div>
+            <h3>Hitung Jarak Window</h3>
+            <div class="logic-value teal">Math.hypot()</div>
+          </div>
+          <div class="logic-card">
+            <div class="logic-icon">🔲</div>
+            <h3>Deteksi Overlap</h3>
+            <div class="logic-value orange">> 70% = Menang</div>
+          </div>
+          <div class="logic-card">
+            <div class="logic-icon">❤️</div>
+            <h3>Health System</h3>
+            <div class="logic-value red">HP 0 = Kalah</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 Points - Title Only -->
+      <div class="points-section">
+        <div class="points-title">Cara Kerja</div>
+        <div class="points-row">
+          <div class="point-chip">
+            <div class="point-num p1">1</div>
+            <h3>Komunikasi Antar Window</h3>
+          </div>
+          <div class="point-chip">
+            <div class="point-num p2">2</div>
+            <h3>Deteksi Jarak & Overlap</h3>
+          </div>
+          <div class="point-chip">
+            <div class="point-num p3">3</div>
+            <h3>Sistem Pertarungan</h3>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="footer-left">BroadcastChannel API · No Server Required</div>
+      <div class="footer-right">
+        <div class="footer-dot"></div>
+        <span>setInterval — setiap 100ms</span>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
