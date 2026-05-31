@@ -1,74 +1,91 @@
-# Dragon Ball Z - Goku Kamehameha Window Interaction
+# 🐉 Dragon Ball Z — Window Interaction with BroadcastChannel API
 
-Demo
-- [Default Goku](https://iwanni.github.io/useless-inventions-window-interaction?w=1) - `?w=1` (faces right)
-- [Mirrored Goku](https://iwanni.github.io/useless-inventions-window-interaction?w=2) - `?w=2` (faces left)
+> **Useless Invention #1** — A window battle game where two browser windows fight each other using only native Web APIs.
+
+## Demo
+
+- [Goku (Window 1)](https://iwanni.github.io/useless-inventions-window-interaction?w=1) — `?w=1`
+- [Vegeta (Window 2)](https://iwanni.github.io/useless-inventions-window-interaction?w=2) — `?w=2`
 
 ![Result Demo](assets/result.gif)
 
-A fun interactive web application where two browser windows containing Goku and Vegeta can "interact" with each other based on their distance. When the windows get close, they power up and fire their signature attacks!
+## What Is This?
+
+Two browser windows containing Goku and Vegeta battle each other based on their real-world position on your screen. Move the windows around — when they get close or overlap, the fight begins!
 
 ## Features
 
-- **Window Detection**: Automatically detects other browser windows using BroadcastChannel API
-- **Distance-based Interaction**: Goku changes animation and audio based on proximity between windows
-- **Dynamic Rotation**: Goku rotates to face the other window
-- **Immersive Audio**: Different Dragon Ball Z sound effects for charging and firing
-- **Character Selection**: Choose between Goku (?w=1) and Vegeta (?w=2) for epic battles
+- **Cross-Window Communication** — Uses BroadcastChannel API to send and receive position & size data between windows every 100ms, with no server required
+- **Distance-Based Interaction** — Characters power up and fire attacks when windows are within 510px of each other
+- **Overlap Detection** — Calculates the intersection area between two windows; 70%+ overlap triggers a win condition
+- **Health System** — Each character has 100 HP. Proximity deals 8.5 damage/tick; significant overlap deals 15 damage/tick
+- **Dynamic Rotation** — Characters rotate to always face each other based on real screen positions
+- **Game Over & Restart** — Win/lose state is synchronized across both windows instantly
+- **Immersive Audio** — Different DBZ sound effects for idle charging and attack firing
 
-## How to Use
+## How to Play
 
 1. Open `index.html` in your browser
-2. Duplicate the tab or open the same file in a new window
-3. For the second window, add `?w=2` to the URL to use Vegeta
-4. Move the windows around your screen
-5. Watch as the characters power up and fire their attacks when windows get close!
-6. Click or tap on either window to unlock audio (browser requirement)
+2. Open the same file in a **second browser window** (not a tab)
+3. Add `?w=2` to the second window's URL to play as Vegeta
+4. **Move the windows around your screen** — the closer they are, the more damage they deal
+5. **Overlap one window on top of the other** (70%+ coverage) to instantly defeat your opponent
+6. Click or tap either window once to unlock audio
 
 ## URL Parameters
 
-- [Goku](https://iwanni.github.io/useless-inventions-window-interaction?w=1) - `?w=1` (default character)
-- [Vegeta](https://iwanni.github.io/useless-inventions-window-interaction?w=2) - `?w=2` (rival character)
+| Parameter | Character | Description |
+|---|---|---|
+| `?w=1` | Goku | Faces right by default |
+| `?w=2` | Vegeta | Mirrored (faces left) |
+
+## Architecture
+
+![Architecture Diagram](architecture-poster.html)
+
+The game uses **BroadcastChannel API** as the backbone for all cross-window communication:
+
+1. **Send** — Each window broadcasts its `screenX`, `screenY`, `outerWidth`, and `outerHeight` every 100ms
+2. **Receive** — The other window listens and uses that data to calculate distance, rotation, and overlap
+3. **Game Events** — `{ type: "gameOver" }` and `{ type: "restart" }` messages are broadcast to sync game state across both windows
+
+### Message Types
+
+| Type | Payload | Purpose |
+|---|---|---|
+| `position` | `x, y, w, h, id, creationTime` | Broadcast window position & size |
+| `gameOver` | `id, winner` | Notify the other window of defeat |
+| `restart` | `id` | Trigger a synchronized game restart |
 
 ## Technical Details
 
-- **Distance Threshold**: 510 pixels between window centers
-- **Update Frequency**: 100ms for smooth interaction
-- **Audio System**: Sequential audio playback (charge → fire → beam)
-- **Browser APIs**: Uses BroadcastChannel for cross-window communication
-- **Audio Unlock**: Supports touch, click, and keyboard interaction for audio unlock
-
-## How BroadcastChannel API Works
-
-![BroadcastChannel Diagram](broadcast-channel-diagram.html)
-
-The application uses the BroadcastChannel API to enable real-time communication between browser windows:
-
-1. **Broadcasting**: Each window broadcasts its position (x, y, width, height) every 100ms
-2. **Listening**: All windows listen for messages from other windows on the same channel
-3. **Distance Calculation**: When receiving another window's position, calculate the distance between window centers
-4. **Visual Effects**: Trigger character animations and audio effects when windows are close (< 510px apart)
-
-[View Interactive Diagram](broadcast-channel-diagram.html)
+| Parameter | Value |
+|---|---|
+| Update Frequency | 100ms (`setInterval`) |
+| Distance Threshold | 510px between window centers |
+| Overlap Win Condition | ≥ 70% of opponent window covered |
+| Proximity Damage | 8.5 HP per tick |
+| Overlap Damage | 15 HP per tick |
+| Damage Cooldown | 300ms |
+| Max Health | 100 HP |
+| Tiebreaker | Oldest window (by creation time) wins |
 
 ## Assets
 
-The project includes Dragon Ball Z themed assets:
-- Goku Super Saiyan GIF and Kamehameha attack
-- Vegeta GIF and Kamehameha attack
-- Dragon Ball Z sound effects (charge, fire, beam)
-- Character-specific animations and audio
-
-## Live Demo
-
-Simply open `index.html` in two browser windows and experience the epic Goku vs Vegeta window battles!
+| File | Used For |
+|---|---|
+| `assets/goku-dbz.gif` | Goku idle animation |
+| `assets/dragonball-z-vegeta.gif` | Vegeta idle animation |
+| `assets/kamehameha.gif` | Attack animation (both characters) |
+| `assets/super-saiyan-2.mp3` | Background charge audio (idle) |
+| `assets/basicbeam_fire2.mp3` | Attack fire sound (one-shot) |
+| `assets/beamhead.mp3` | Beam sustain audio (loop after fire) |
 
 ## Credits
 
 - **Sound Effects**: [MyInstants](https://www.myinstants.com/)
-- **GIF Images**: 
-  - [Super Saiyan Goku](https://tenor.com/view/super-saiyan-goku-dbz-charging-gif-17464307) - Tenor
-  - [Goku Kamehameha](https://tenor.com/view/goku-dragonball-gif-8466428) - Tenor
-  - [Vegeta](https://tenor.com/view/vegeta-gif-1615384944259328642) - Tenor
-  - [Vegeta Additional](https://gifgifs.com/anime/dragon-ball-z/32161-vegeta-vegeta-14.html) - GifGifs
-  - [Vegeta Kamehameha](https://gifs.alphacoders.com/gifs/view/35158) - Alpha Coders
+- **GIF Images**:
+  - [Super Saiyan Goku](https://tenor.com/view/super-saiyan-goku-dbz-charging-gif-17464307) — Tenor
+  - [Goku Kamehameha](https://tenor.com/view/goku-dragonball-gif-8466428) — Tenor
+  - [Vegeta](https://tenor.com/view/vegeta-gif-1615384944259328642) — Tenor
+  - [Vegeta Kamehameha](https://gifs.alphacoders.com/gifs/view/35158) — Alpha Coders
