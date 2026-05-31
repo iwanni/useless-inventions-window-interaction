@@ -7,7 +7,7 @@
 - [Goku (Window 1)](https://iwanni.github.io/useless-inventions-window-interaction?w=1) — `?w=1`
 - [Vegeta (Window 2)](https://iwanni.github.io/useless-inventions-window-interaction?w=2) — `?w=2`
 
-![Result Demo](assets/result.gif)
+![Result Demo](assets/result.mp4)
 
 ## What Is This?
 
@@ -41,7 +41,7 @@ Two browser windows containing Goku and Vegeta battle each other based on their 
 
 ## Architecture
 
-![Architecture Diagram](architecture-poster.html)
+![Architecture Diagram](assets/architecture-poster.png)
 
 The game uses **BroadcastChannel API** as the backbone for all cross-window communication:
 
