@@ -7,7 +7,7 @@
 - [Goku (Window 1)](https://iwanni.github.io/useless-inventions-window-interaction?w=1) — `?w=1`
 - [Vegeta (Window 2)](https://iwanni.github.io/useless-inventions-window-interaction?w=2) — `?w=2`
 
-![Result Demo](assets/result.mp4)
+![Result Demo](assets/result.gif)
 
 ## What Is This?
 
